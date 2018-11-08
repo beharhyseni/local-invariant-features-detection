@@ -95,11 +95,14 @@ def match(image1,image2):
     im1, keypoints1, descriptors1 = ReadKeys(image1)
     im2, keypoints2, descriptors2 = ReadKeys(image2)
     
-    #best_match = 
-    
+   
+   
+   
+   
+   # PART 3 - SIFT Match 
     matched_pairs = []
     
-    threshold = 0.535
+    threshold = 0.65
     
     for desc1_index in range(len(descriptors1)):
         
@@ -120,14 +123,85 @@ def match(image1,image2):
         
         if ratio < threshold:
             matched_pairs.append([keypoints1[desc1_index], keypoints2[angles_list.index(best_angle)]])
-           
+  
+  
+  
+    # PART 4 - RANSAC
     
+    RANSAC_ITERATIONS = 10
+    
+    orientation_degree = 30
+    scale_agreement = 0.5
+    
+    
+    consistent_subsets = []
+    
+    
+    for i in range(0, RANSAC_ITERATIONS-1):
+        
+        random_index = np.random.randint(0, len(matched_pairs) - 1, 1)
+        
+        random_matched_pair = matched_pairs[random_index[0]]
+        
+        
+        first_pair_degree = math.degrees(abs(random_matched_pair[0][3] - random_matched_pair[1][3]))
+        first_pair_scale = abs(random_matched_pair[0][2] - random_matched_pair[1][2])
+       
+        
+        consistent_subset = []
+        # print len(consistent_subset)
 
+        consistent_subset.append(random_matched_pair)
+        
+        for pair_index in range(0, len(matched_pairs) - 1):
+            
+            
+            second_pair_degree = math.degrees(abs(matched_pairs[pair_index][0][3] - matched_pairs[pair_index][1][3]))
+            second_pair_scale  = abs(matched_pairs[pair_index][0][2] - matched_pairs[pair_index][1][2])
+            
+            change_in_orientation = abs(first_pair_degree - second_pair_degree)
+            change_in_scale       = abs(first_pair_scale - second_pair_scale)
+            
+           
+            change_in_scale_agreement = (change_in_scale <= (first_pair_scale + scale_agreement * first_pair_scale)) and (change_in_scale >= (first_pair_scale - scale_agreement * first_pair_scale))
+           
+            
+            if (change_in_orientation < orientation_degree) and change_in_scale_agreement:
+                 #print matched_pairs[pair_index]
+                 consistent_subset.append(matched_pairs[pair_index])
+                 
+        
+        consistent_subsets.append(consistent_subset)
+    
+        
+    # now check which subsets have the most elements, which means the pairs were the most consistent
+        
+    
+    consistent_matched_pairs = []
+    
+    consistent_pairs_index = 0
+    subset_length = 0
+    for i in range(0, len(consistent_subsets)-1):
+        
+        if subset_length < len(consistent_subsets[i]):
+            subset_length = len(consistent_subsets[i]) - 1
+            consistent_pairs_index = i
+            
+        
+        
+    for i in range(0, len(consistent_subsets[consistent_pairs_index]) - 1):
+        consistent_matched_pairs.append(consistent_subsets[consistent_pairs_index][i])
+        
+    
+    
     # END OF SECTION OF CODE TO REPLACE
     #
-    im3 = DisplayMatches(im1, im2, matched_pairs)
+    im3 = DisplayMatches(im1, im2, consistent_matched_pairs)
     return im3
 
 #Test run...
-match('scene','basmati')
+# match('scene','basmati')
+# match('scene', 'book')
+# match('scene', 'box')
+match('library2','library')
 
