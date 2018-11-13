@@ -96,31 +96,56 @@ def match(image1,image2):
     im2, keypoints2, descriptors2 = ReadKeys(image2)
     
    
-   
-   
-   
    # PART 3 - SIFT Match 
+   
+    # Initialize an array which will save matched pairs found using SIFT to detect same features between 2 pictures.
     matched_pairs = []
     
-    threshold = 0.65
-    
-    for desc1_index in range(len(descriptors1)):
+    # Set the threshold value, which is used to filter matches by comparing their angles (the smallest (best) match's angle to the second-best match's angle); thus, eliminate false matches.
+    threshold = 0.8
+
+    # Iterate through every element of the descriptors1 array that corresponds to the first image's descriptor vectors 
+    for desc1_index in range(0, len(descriptors1)):
         
+        # Save the current (based on the current iteration of descriptors1) descriptor vector of image1 into the variable desc1_vector
+        # It will be used to compute the dot product with vectors from descriptor2 (from image 2)
         desc1_vector = descriptors1[desc1_index]
+        
+        # Initialize a list variable that will save angles (to be used to save the inverese cosine of the dot product 
+        # between vectors of image1 and image2 descriptors (Each row of descriptors corresponds to a descriptor vector)
         angles_list = []
         
-        for desc2_index in range(len(descriptors2)):
+        # Iterate through every element of the descriptors2 array that corresponds to the second image's descriptor vectors 
+        for desc2_index in range(0, len(descriptors2)):
+            
+           # Save the current (based on the current iteration of descriptors2) descriptor vector of image2 into the variable desc2_vector. 
+           # It will be used to compute the dot product between desc2_vector and a vector from descriptor1 array (from image1) 
            desc2_vector = descriptors2[desc2_index]
+                      
+           # Compute the dot product between the current descriptor vector of the image1's descriptor1 and the current vector of the image2's descriptor2 array
            dot_product = np.dot(desc1_vector, desc2_vector)
+           
+           # Save the inverse cosine of the calculated dot product in the variable 'angle', which denotes the angle between the descriptor vectors from image1 and image2.
            angle = math.acos(dot_product)
+           
+           # Add this calculated angle (inverse cosine of the dot product between descriptor vectors of image1 and image2) to the list 'angles_list'
            angles_list.append(angle)
         
-        
+        # Sort the angles from the 'angle_list' in the increasing order. This is an easy way to locate and save 
+        # the best calculated angle (smallest number) to the variable 'best_angle'.
         best_angle = sorted(angles_list)[0]
+        
+        # Locate and save the second best angle in the list, which is the second element in this sorted list (second smallest number of the list).
         second_best_angle = sorted(angles_list)[1]
         
+        # We divide the best angle with the second best angle in the list to obtain the ratio between these two.
         ratio =  best_angle / second_best_angle
         
+        # Compare the ratio with the specified threshold. If the ratio is smaller than the threshold, then add the correct keypoint of image1 (based on the current iteration descriptor vector index)
+        # with the correct keypoint from the image1 as a matched pair into the matched pairs' array.
+        # (The correct keypoint from image1 is obtained by using the current iteration's desc1_index as an index to get the corresponding element from the keypoints array of image1)
+        # (The correct keypoint from image2 is obtained by getting the index of the best_angle from the angles_list (indexes in angles_list correspond to the indexes in keypoints of image2), 
+        # then we use this index's value as an index for keypoints2 to obtain the correct keypoint).
         if ratio < threshold:
             matched_pairs.append([keypoints1[desc1_index], keypoints2[angles_list.index(best_angle)]])
   
@@ -130,8 +155,8 @@ def match(image1,image2):
     
     RANSAC_ITERATIONS = 10
     
-    orientation_degree = 30
-    scale_agreement = 0.5
+    orientation_degree = 15
+    scale_agreement = 0.25
     
     
     consistent_subsets = []
@@ -203,5 +228,5 @@ def match(image1,image2):
 # match('scene','basmati')
 # match('scene', 'book')
 # match('scene', 'box')
-match('library2','library')
+match('library','library2')
 
