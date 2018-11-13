@@ -96,7 +96,7 @@ def match(image1,image2):
     im2, keypoints2, descriptors2 = ReadKeys(image2)
     
    
-   # PART 3 - SIFT Match 
+    # *** PART 3 - SIFT Match *** 
    
     # Initialize an array which will save matched pairs found using SIFT to detect same features between 2 pictures.
     matched_pairs = []
@@ -131,7 +131,7 @@ def match(image1,image2):
            # Add this calculated angle (inverse cosine of the dot product between descriptor vectors of image1 and image2) to the list 'angles_list'
            angles_list.append(angle)
         
-        # Sort the angles from the 'angle_list' in the increasing order. This is an easy way to locate and save 
+        # Sort the angles from the 'angles_list' in the increasing order. This is an easy way to locate and save 
         # the best calculated angle (smallest number) to the variable 'best_angle'.
         best_angle = sorted(angles_list)[0]
         
@@ -151,73 +151,113 @@ def match(image1,image2):
   
   
   
-    # PART 4 - RANSAC
+    # *** PART 4 - RANSAC *** 
     
+    # Specify the number of RANSAC iterations (10 is the number asked in the assignment description)
     RANSAC_ITERATIONS = 10
     
+    # Orientation degree and scale variables (are manipulated differently to obtain best keypoint matching results using RANSAC)
     orientation_degree = 15
-    scale_agreement = 0.25
+    scale_percentage = 0.25
     
-    
+    # Declare the list 'consistent_subsets' that will contain conistent matched pairs when comparing degrees and scales of the random matched pair with every other element in the 
+    # matched_pair list.
     consistent_subsets = []
     
     
-    for i in range(0, RANSAC_ITERATIONS-1):
+    # Iterate RANSAC_ITERATIONS times and for each iteration select just one match at random, and then check all the other matches for consistency with it.
+    for i in range(RANSAC_ITERATIONS):
         
-        random_index = np.random.randint(0, len(matched_pairs) - 1, 1)
+        # Select a random integer between 0 and the array length of the 'matched_pairs'. (which means a random index of an element from the matched pairs)
+        random_index = np.random.randint(0, len(matched_pairs), 1)
         
+        # Select the random matched pair from the matched_pairs list by using the random index we calculated before.
         random_matched_pair = matched_pairs[random_index[0]]
         
-        
+        # Calculate the difference of degrees between the two keypoints in the random matched pair of the current iteration (since each RANSAC_ITERATION, a different random match pair is chosen).
+        # This is computed by obtaining the orientations (the fourth element in a keypoint row) of the two keypoints in the random matched pair, finding their difference (use absolute value
+        # since we need a positive difference number), and converting this difference into degrees (since it is in radians initially).
         first_pair_degree = math.degrees(abs(random_matched_pair[0][3] - random_matched_pair[1][3]))
+     
+        # Calculate the difference of scales between the two keypoints in the random matched pair of this iteration (since each RANSAC_ITERATION, a different random match pair is chosen).
+        # To compute this difference, we select the element in the third row (scale is positioned there) in each of the keypoints in this matched pair and find their absolute difference.
         first_pair_scale = abs(random_matched_pair[0][2] - random_matched_pair[1][2])
        
-        
+        # Declare the list 'consistent_subset' that will save consistent matches in each RANSAC iteration.
         consistent_subset = []
-        # print len(consistent_subset)
 
+        # Add the first matched pair (the chosen random matched pair) in the consistent_subset list.
         consistent_subset.append(random_matched_pair)
-        
-        for pair_index in range(0, len(matched_pairs) - 1):
+    
+        # Iterate through each element of the matched_pairs (pair_index is the index of the matched pair in the current iteration)
+        # We do this iteration since we need to check all matched pairs in the matched_pairs list for consistency with the random chosen pair.
+        for pair_index in range(0, len(matched_pairs)):
             
-            
+            # Calculate the difference of degrees between the two keypoints in the matched pair of the current iteration of matched_pairs index. (since each iteration, a different pair_index is chosen)
+            # This is computed by obtaining the orientations (the fourth element in a keypoint row) of the two keypoints in this matched pair, finding their difference (use absolute value
+            # since we need a positive difference number), and converting this difference into degrees (since it is in radians initially).
             second_pair_degree = math.degrees(abs(matched_pairs[pair_index][0][3] - matched_pairs[pair_index][1][3]))
+            
+            # Calculate the difference of scales between the two keypoints in the matched pair of the current iteration of matched_pairs index. (since each iteration, a different pair_index is chosen)
+            # To compute this difference, we select the element in the third row (scale is positioned there) in each of the keypoints in this matched pair and find their absolute difference.            
             second_pair_scale  = abs(matched_pairs[pair_index][0][2] - matched_pairs[pair_index][1][2])
             
+            # Calculate the absolute difference between the degrees computed between the two keypoints in the random matched pair and the two keypoints in matched pair of the current pair_index iteration.
+            # In other words, compute the absolute degrees difference between the random matched pair and the current iteration's matched pair that comes from matched_pairs list)
             change_in_orientation = abs(first_pair_degree - second_pair_degree)
-            change_in_scale       = abs(first_pair_scale - second_pair_scale)
             
-           
-            change_in_scale_agreement = (change_in_scale <= (first_pair_scale + scale_agreement * first_pair_scale)) and (change_in_scale >= (first_pair_scale - scale_agreement * first_pair_scale))
-           
+            # Calculate the absolute difference between the scales computed between the two keypoints in the random matched pair and the two keypoints in matched pair of the current pair_index iteration.
+            # In other words, compute the absolute scales difference between the random matched pair and the current iteration's matched pair that comes from matched_pairs list)
+            change_in_scale = abs(first_pair_scale - second_pair_scale)
             
-            if (change_in_orientation < orientation_degree) and change_in_scale_agreement:
-                 #print matched_pairs[pair_index]
+            # Copmuter the scale change agreement based on the percentage value specified in the variable 'scale_percentage'.
+            # Save the boolean TRUE if the change of scale between the random matched pair and the matched pair of the current pair_index iteration 
+            # agrees within plus or minus 'scale_percentage', otherwise save FALSE.
+            change_in_scale_agreement = (change_in_scale <= (first_pair_scale + scale_percentage * first_pair_scale)) and (change_in_scale >= (first_pair_scale - scale_percentage * first_pair_scale))
+           
+            # If the change_in_scale_agreement is true and change in orientation is less than the specified orientation_degree, get the matched pair from the matched_pairs using pair_index (current iteration)
+            # and add this matched pair to the consistent subset list.
+            if (change_in_orientation < orientation_degree) and change_in_scale_agreement:                
                  consistent_subset.append(matched_pairs[pair_index])
-                 
+                      
         
+        # At the current RANSAC ITERATION, add the consistent_subset list computed when checking for consistency between the random matched pair and all matched pairs from the matched_pairs list
+        # to the largest consistent subset list: consistent_subsets.
         consistent_subsets.append(consistent_subset)
-    
-        
-    # now check which subsets have the most elements, which means the pairs were the most consistent
         
     
-    consistent_matched_pairs = []
+   
+    ######## NOTE Start: This part (till line 254) simply selects the largest subset in the array that consists all subsets through all RANSAC iterations (called consistent_subsets), and saves each element (matched pairs) of this subset 
+    ########       into a final array called consistent_matched_pairs         
     
+    # Initialize the index of consistent pairs which will be used to save the index of the subset with the most matched pairs found inside of the consistent_subsets (contains all consistent subsets across all RANSAC iterations)
     consistent_pairs_index = 0
+    
+    # Declare and initialize this variable which in the next step will save the largest subset (subset with most matched pairs) in the consistent_subsets (contains all consistent subsets across all RANSAC iterations)
     subset_length = 0
-    for i in range(0, len(consistent_subsets)-1):
+    
+    # Iterate through every element in the consistent_subsets (contains all consistent subsets across all RANSAC iterations)
+    for i in range(0, len(consistent_subsets)):
         
+        # If the subset_length integer is smaller than the length of the subset in the current iteration, update subset_length to have the length of the current iteration's subset as well as 
+        # update consistent_pairs_index to have the index of that subset in the array consistent_subset.
+        # By the end of the entire for loop, subset_length will contain the length of the largest subset computed through all RANSAC iterations and
+        # consistent_pairs_index will contain the index of this largest subset which will be used as the final array for matched pairs.
         if subset_length < len(consistent_subsets[i]):
             subset_length = len(consistent_subsets[i]) - 1
             consistent_pairs_index = i
             
         
-        
-    for i in range(0, len(consistent_subsets[consistent_pairs_index]) - 1):
-        consistent_matched_pairs.append(consistent_subsets[consistent_pairs_index][i])
-        
+    # Declare this new list which will save the final largest consistent subset across all RANSAC iterations.
+    consistent_matched_pairs = []
     
+    # Iterate through every element in the largest subset of consistent_subsets (contains all consistent subsets across all RANSAC iterations)
+    # index consistent_pairs_index has the array position of the subset with the most matched pairs.
+    # Add every element of this largest subset to the final list consistent_matched_pairs.
+    for i in range(0, len(consistent_subsets[consistent_pairs_index])):         
+        consistent_matched_pairs.append(consistent_subsets[consistent_pairs_index][i])
+    ######## NOTE End.
+        
     
     # END OF SECTION OF CODE TO REPLACE
     #
