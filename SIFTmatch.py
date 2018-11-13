@@ -158,7 +158,7 @@ def match(image1,image2):
     
     # Orientation degree and scale variables (are manipulated differently to obtain best keypoint matching results using RANSAC)
     orientation_degree = 15
-    scale_percentage = 0.25
+    scale_percentage = 0.99
     
     # Declare the list 'consistent_subsets' that will contain conistent matched pairs when comparing degrees and scales of the random matched pair with every other element in the 
     # matched_pair list.
@@ -247,7 +247,7 @@ def match(image1,image2):
             subset_length = len(consistent_subsets[i]) - 1
             consistent_pairs_index = i
             
-        
+    print subset_length    
     # Declare this new list which will save the final largest consistent subset across all RANSAC iterations.
     consistent_matched_pairs = []
     
