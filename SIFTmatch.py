@@ -80,6 +80,15 @@ def DisplayMatches(im1, im2, matched_pairs):
         draw.line((match[0][1], match[0][0], offset+match[1][1], match[1][0]),fill="red",width=2)
     im3.show()
     return im3
+    
+    
+    
+def correct_degrees(absolute_degrees_difference):
+      value = absolute_degrees_difference
+      if absolute_degrees_difference > 180:
+            value = 360-absolute_degrees_difference
+      return value
+    
 
 def match(image1,image2):
     """Input two images and their associated SIFT keypoints.
@@ -157,8 +166,8 @@ def match(image1,image2):
     RANSAC_ITERATIONS = 10
     
     # Orientation degree and scale variables (are manipulated differently to obtain best keypoint matching results using RANSAC)
-    orientation_degree = 15
-    scale_percentage = 0.99
+    orientation_degree = 25
+    scale_percentage = 0.5
     
     # Declare the list 'consistent_subsets' that will contain conistent matched pairs when comparing degrees and scales of the random matched pair with every other element in the 
     # matched_pair list.
@@ -177,7 +186,7 @@ def match(image1,image2):
         # Calculate the difference of degrees between the two keypoints in the random matched pair of the current iteration (since each RANSAC_ITERATION, a different random match pair is chosen).
         # This is computed by obtaining the orientations (the fourth element in a keypoint row) of the two keypoints in the random matched pair, finding their difference (use absolute value
         # since we need a positive difference number), and converting this difference into degrees (since it is in radians initially).
-        first_pair_degree = math.degrees(abs(random_matched_pair[0][3] - random_matched_pair[1][3]))
+        first_pair_degree = correct_degrees(math.degrees(abs(random_matched_pair[0][3] - random_matched_pair[1][3])))
      
         # Calculate the difference of scales between the two keypoints in the random matched pair of this iteration (since each RANSAC_ITERATION, a different random match pair is chosen).
         # To compute this difference, we select the element in the third row (scale is positioned there) in each of the keypoints in this matched pair and find their absolute difference.
@@ -196,7 +205,7 @@ def match(image1,image2):
             # Calculate the difference of degrees between the two keypoints in the matched pair of the current iteration of matched_pairs index. (since each iteration, a different pair_index is chosen)
             # This is computed by obtaining the orientations (the fourth element in a keypoint row) of the two keypoints in this matched pair, finding their difference (use absolute value
             # since we need a positive difference number), and converting this difference into degrees (since it is in radians initially).
-            second_pair_degree = math.degrees(abs(matched_pairs[pair_index][0][3] - matched_pairs[pair_index][1][3]))
+            second_pair_degree = correct_degrees(math.degrees(abs(matched_pairs[pair_index][0][3] - matched_pairs[pair_index][1][3])))
             
             # Calculate the difference of scales between the two keypoints in the matched pair of the current iteration of matched_pairs index. (since each iteration, a different pair_index is chosen)
             # To compute this difference, we select the element in the third row (scale is positioned there) in each of the keypoints in this matched pair and find their absolute difference.            
@@ -204,7 +213,7 @@ def match(image1,image2):
             
             # Calculate the absolute difference between the degrees computed between the two keypoints in the random matched pair and the two keypoints in matched pair of the current pair_index iteration.
             # In other words, compute the absolute degrees difference between the random matched pair and the current iteration's matched pair that comes from matched_pairs list)
-            change_in_orientation = abs(first_pair_degree - second_pair_degree)
+            change_in_orientation = correct_degrees(abs(first_pair_degree - second_pair_degree))
             
             # Calculate the absolute difference between the scales computed between the two keypoints in the random matched pair and the two keypoints in matched pair of the current pair_index iteration.
             # In other words, compute the absolute scales difference between the random matched pair and the current iteration's matched pair that comes from matched_pairs list)
@@ -247,7 +256,7 @@ def match(image1,image2):
             subset_length = len(consistent_subsets[i]) - 1
             consistent_pairs_index = i
             
-    print subset_length    
+    print subset_length
     # Declare this new list which will save the final largest consistent subset across all RANSAC iterations.
     consistent_matched_pairs = []
     
